@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: sovereign-forex-prime
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: WS_PORT
+        value: 3001
+      - key: OANDA_API_KEY
+        sync: false
+      - key: OANDA_ACCOUNT_ID
+        sync: false
+      - key: OANDA_PRACTICE
+        value: "true"
+      - key: WEEK_TARGET
+        value: "3000"
+      - key: DAY_TARGET
+        value: "600"
+      - key: MAX_DAILY_LOSS_PCT
+        value: "5"
+      - key: MAX_DRAWDOWN_PCT
+        value: "10"
+      - key: MAX_RISK_PER_TRADE_PCT
+        value: "1"
+      - key: CONSISTENCY_CAP_PCT
+        value: "45"
+      - key: AUTO_TRADE
+        value: "false"
+      - key: MIN_CONFLUENCE
+        value: "65"
+      - key: DEFAULT_PAIRS
+        value: "EUR_USD,GBP_USD,USD_JPY,AUD_USD"
+      - key: SCAN_INTERVAL_MS
+        value: "60000"

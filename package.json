@@ -1,0 +1,28 @@
+{
+  "name": "sovereign-forex-prime",
+  "version": "1.0.0",
+  "description": "Sovereign Forex Prime — $3K/week AI trading engine with Brain 2.5, ICT Silver Bullet, and OANDA v20",
+  "type": "module",
+  "scripts": {
+    "dev": "npx tsx server.ts",
+    "start": "npx tsx server.ts",
+    "setup": "node setup.mjs"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "tsx": "^4.19.4",
+    "typescript": "^5.7.3",
+    "ws": "^8.18.2"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.2",
+    "@types/node": "^22.15.3",
+    "@types/ws": "^8.18.1"
+  }
+}

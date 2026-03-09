@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚡ Sovereign Forex Prime</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0a1a;--card:rgba(20,15,40,.55);--border:rgba(160,100,255,.25);
+  --glow:#a855f7;--glow2:#7c3aed;--green:#22c55e;--red:#ef4444;
+  --cyan:#06b6d4;--gold:#facc15;--txt:#e2e8f0;--dim:#94a3b8;
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 30% 20%,rgba(168,85,247,.12) 0%,transparent 60%),radial-gradient(ellipse at 70% 80%,rgba(6,182,212,.08) 0%,transparent 60%);pointer-events:none;z-index:0}
+
+.top-bar{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;background:rgba(10,10,26,.85);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;backdrop-filter:blur(14px)}
+.top-bar h1{font-size:1.15rem;font-weight:700;background:linear-gradient(135deg,var(--glow),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.top-bar .status{display:flex;gap:10px;align-items:center;font-size:.82rem}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block;animation:pulse 2s infinite}
+.dot.on{background:var(--green);box-shadow:0 0 8px var(--green)}
+.dot.off{background:var(--red);box-shadow:0 0 8px var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:18px;padding:22px 28px;position:relative;z-index:1}
+
+.card{background:var(--card);backdrop-filter:blur(18px);border:1px solid var(--border);border-radius:16px;padding:22px 26px;position:relative;overflow:hidden;transition:box-shadow .3s}
+.card:hover{box-shadow:0 0 30px rgba(168,85,247,.18)}
+.card::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:conic-gradient(from 180deg,transparent,rgba(168,85,247,.06),transparent 30%);animation:spin 8s linear infinite;pointer-events:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+.card h2{font-size:.92rem;text-transform:uppercase;letter-spacing:1.4px;color:var(--glow);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.card h2 .ico{font-size:1.15rem}
+
+/* ── PRICE TICKER ── */
+#ticker{display:flex;gap:14px;flex-wrap:wrap}
+.pair-box{flex:1;min-width:140px;text-align:center;padding:12px;background:rgba(255,255,255,.03);border-radius:10px;border:1px solid rgba(255,255,255,.06)}
+.pair-box .name{font-size:.78rem;color:var(--dim);margin-bottom:4px}
+.pair-box .price{font-size:1.3rem;font-weight:700;font-variant-numeric:tabular-nums}
+.pair-box .spread{font-size:.7rem;color:var(--dim);margin-top:2px}
+.pair-box.up .price{color:var(--green)}
+.pair-box.dn .price{color:var(--red)}
+
+/* ── RISK SIZING — HERO CARD ── */
+.risk-card{border-image:linear-gradient(135deg,var(--glow),var(--cyan)) 1;border-width:2px}
+.risk-card::after{content:'';position:absolute;inset:-2px;border-radius:16px;background:linear-gradient(135deg,rgba(168,85,247,.15),rgba(6,182,212,.10));z-index:-1;filter:blur(30px)}
+.risk-row{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px}
+.risk-stat{flex:1;min-width:100px;text-align:center;padding:10px;background:rgba(255,255,255,.04);border-radius:10px}
+.risk-stat .lbl{font-size:.7rem;color:var(--dim);text-transform:uppercase;letter-spacing:.8px}
+.risk-stat .val{font-size:1.4rem;font-weight:800;margin-top:2px}
+.risk-stat .val.green{color:var(--green)}
+.risk-stat .val.purple{color:var(--glow)}
+.risk-stat .val.cyan{color:var(--cyan)}
+.risk-stat .val.gold{color:var(--gold)}
+
+/* ── BRAIN 2.5 PANEL ── */
+.brain-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}
+.brain-cell{padding:12px;background:rgba(255,255,255,.03);border-radius:10px;text-align:center}
+.brain-cell .lbl{font-size:.68rem;color:var(--dim);text-transform:uppercase;letter-spacing:.6px}
+.brain-cell .val{font-size:1.25rem;font-weight:700;margin-top:4px}
+.brain-cell .bar{height:6px;border-radius:3px;background:rgba(255,255,255,.08);margin-top:8px;overflow:hidden}
+.brain-cell .bar-fill{height:100%;border-radius:3px;transition:width .6s}
+
+/* CONFLUENCE FACTORS */
+.factors{margin-top:12px;display:flex;flex-wrap:wrap;gap:6px}
+.factor-tag{font-size:.72rem;padding:4px 10px;border-radius:20px;background:rgba(168,85,247,.15);color:var(--glow);border:1px solid rgba(168,85,247,.3)}
+.factor-tag.active{background:rgba(168,85,247,.35);color:#fff}
+
+/* ── SILVER BULLET TOGGLE ── */
+.toggle-row{display:flex;align-items:center;gap:12px;margin-top:10px}
+.toggle{position:relative;width:48px;height:26px;cursor:pointer}
+.toggle input{opacity:0;width:0;height:0}
+.toggle .slider{position:absolute;inset:0;background:rgba(255,255,255,.12);border-radius:26px;transition:.3s}
+.toggle .slider::before{content:'';position:absolute;width:20px;height:20px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.3s}
+.toggle input:checked+.slider{background:var(--glow);box-shadow:0 0 12px var(--glow)}
+.toggle input:checked+.slider::before{transform:translateX(22px)}
+.toggle-label{font-size:.82rem;color:var(--dim)}
+
+/* ── FUNDING TRACKER ── */
+.tracker-bar{height:20px;border-radius:10px;background:rgba(255,255,255,.06);margin-top:10px;overflow:hidden;position:relative}
+.tracker-fill{height:100%;border-radius:10px;background:linear-gradient(90deg,var(--glow2),var(--glow),var(--cyan));transition:width .8s;min-width:2px}
+.tracker-label{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:.72rem;font-weight:700}
+.tracker-stats{display:flex;justify-content:space-between;margin-top:8px;font-size:.78rem;color:var(--dim)}
+
+/* ── BUTTONS ── */
+.btn{padding:10px 22px;border:none;border-radius:10px;font-weight:700;font-size:.82rem;cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.8px}
+.btn-purple{background:linear-gradient(135deg,var(--glow2),var(--glow));color:#fff;box-shadow:0 0 20px rgba(168,85,247,.3)}
+.btn-purple:hover{box-shadow:0 0 30px rgba(168,85,247,.5);transform:translateY(-1px)}
+.btn-red{background:linear-gradient(135deg,#dc2626,var(--red));color:#fff}
+.btn-green{background:linear-gradient(135deg,#16a34a,var(--green));color:#fff}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+
+/* ── LOG ── */
+#log{max-height:220px;overflow-y:auto;font-family:'Cascadia Code','Fira Code',monospace;font-size:.75rem;line-height:1.6;padding:6px 0;color:var(--dim)}
+#log .entry{padding:2px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+#log .ts{color:var(--glow);margin-right:6px}
+
+/* scrollbar */
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:5px}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <h1>⚡ SOVEREIGN FOREX PRIME</h1>
+  <div class="status">
+    <span class="dot" id="dotStatus"></span>
+    <span id="connLabel">Connecting…</span>
+    <span style="margin-left:12px;color:var(--dim)" id="clockLabel"></span>
+  </div>
+</div>
+
+<!-- GRID -->
+<div class="grid">
+
+  <!-- LIVE PRICES -->
+  <div class="card" style="grid-column:1/-1">
+    <h2><span class="ico">📡</span> Live Prices</h2>
+    <div id="ticker"></div>
+  </div>
+
+  <!-- RISK-BASED SIZING (hero) -->
+  <div class="card risk-card">
+    <h2><span class="ico">🎯</span> Risk-Based Sizing</h2>
+    <div class="risk-row">
+      <div class="risk-stat"><div class="lbl">Balance</div><div class="val green" id="rBal">—</div></div>
+      <div class="risk-stat"><div class="lbl">Risk %</div><div class="val purple" id="rPct">1%</div></div>
+      <div class="risk-stat"><div class="lbl">$ at Risk</div><div class="val cyan" id="rUsd">—</div></div>
+      <div class="risk-stat"><div class="lbl">Lot Size</div><div class="val gold" id="rLot">—</div></div>
+    </div>
+    <div class="risk-row" style="margin-top:8px">
+      <div class="risk-stat"><div class="lbl">SL Pips</div><div class="val" id="rSL">20</div></div>
+      <div class="risk-stat"><div class="lbl">TP Pips</div><div class="val" id="rTP">40</div></div>
+      <div class="risk-stat"><div class="lbl">Units</div><div class="val" id="rUnits">—</div></div>
+      <div class="risk-stat"><div class="lbl">Open Trades</div><div class="val" id="rOpen">0</div></div>
+    </div>
+  </div>
+
+  <!-- BRAIN 2.5 -->
+  <div class="card">
+    <h2><span class="ico">🧠</span> Brain 2.5 — AI Engine</h2>
+    <div class="brain-grid">
+      <div class="brain-cell">
+        <div class="lbl">Decision Radar</div>
+        <div class="val" id="bVerdict" style="color:var(--dim)">WAIT</div>
+      </div>
+      <div class="brain-cell">
+        <div class="lbl">Predictive Win Rate</div>
+        <div class="val" id="bWinRate">—%</div>
+        <div class="bar"><div class="bar-fill" id="bWinBar" style="width:0%;background:var(--green)"></div></div>
+      </div>
+      <div class="brain-cell">
+        <div class="lbl">Weighted Direction</div>
+        <div class="val" id="bDir">—</div>
+      </div>
+      <div class="brain-cell">
+        <div class="lbl">Confluence Score</div>
+        <div class="val" id="bConf">0</div>
+        <div class="bar"><div class="bar-fill" id="bConfBar" style="width:0%;background:var(--glow)"></div></div>
+      </div>
+    </div>
+    <div class="factors" id="bFactors"></div>
+
+    <!-- SILVER BULLET TOGGLE -->
+    <div class="toggle-row">
+      <label class="toggle"><input type="checkbox" id="silverToggle" checked><span class="slider"></span></label>
+      <span class="toggle-label">ICT Silver Bullet Filter</span>
+      <span id="silverStatus" style="margin-left:auto;font-size:.75rem;color:var(--dim)">—</span>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-purple" onclick="testSignal()">⚡ Test Signal</button>
+      <button class="btn btn-green" onclick="startTrader()">▶ Start</button>
+      <button class="btn btn-red" onclick="stopTrader()">⏹ Stop</button>
+    </div>
+  </div>
+
+  <!-- $3K / WEEK FUNDING TRACKER -->
+  <div class="card">
+    <h2><span class="ico">💰</span> $3K / Week Funding Tracker</h2>
+    <div class="tracker-bar"><div class="tracker-fill" id="tFill" style="width:0%"></div><span class="tracker-label" id="tPct">0%</span></div>
+    <div class="tracker-stats">
+      <span>Week P&L: <b id="tWeek">$0</b></span>
+      <span>Day P&L: <b id="tDay">$0</b></span>
+      <span>Target: <b>$3,000</b></span>
+    </div>
+    <div style="margin-top:14px;display:flex;gap:14px;flex-wrap:wrap">
+      <div class="risk-stat" style="flex:1"><div class="lbl">NAV</div><div class="val cyan" id="tNav">—</div></div>
+      <div class="risk-stat" style="flex:1"><div class="lbl">Trades Today</div><div class="val" id="tTrades">0</div></div>
+      <div class="risk-stat" style="flex:1"><div class="lbl">Setup Grade</div><div class="val gold" id="tGrade">—</div></div>
+    </div>
+  </div>
+
+  <!-- PROP GUARD -->
+  <div class="card">
+    <h2><span class="ico">🛡️</span> Prop Guard</h2>
+    <div id="guardList" style="font-size:.82rem;color:var(--green)">✅ All clear — ready to trade</div>
+  </div>
+
+  <!-- ACTIVITY LOG -->
+  <div class="card" style="grid-column:1/-1">
+    <h2><span class="ico">📋</span> Activity Log</h2>
+    <div id="log"></div>
+  </div>
+
+</div>
+
+<script>
+const API = '';
+const WS_URL = `ws://${location.hostname}:3001`;
+const PAIRS = ['EUR_USD','GBP_USD','USD_JPY','AUD_USD'];
+let ws, lastPrices = {}, brainData = null;
+
+/* ── CLOCK ── */
+setInterval(()=>{
+  const d = new Date();
+  document.getElementById('clockLabel').textContent =
+    d.toUTCString().slice(0,-4)+' UTC';
+},1000);
+
+/* ── LOG ── */
+function log(msg){
+  const el = document.getElementById('log');
+  const ts = new Date().toLocaleTimeString();
+  el.innerHTML = `<div class="entry"><span class="ts">${ts}</span>${msg}</div>` + el.innerHTML;
+  if(el.children.length > 120) el.lastChild.remove();
+}
+
+/* ── FETCH HELPERS ── */
+async function api(path, opts={}){
+  try{
+    const r = await fetch(API+path, opts);
+    return await r.json();
+  }catch(e){ log('❌ API error: '+e.message); return {ok:false}; }
+}
+
+/* ── INIT ── */
+async function init(){
+  log('🔌 Connecting to Sovereign Forex Prime…');
+  const st = await api('/api/status');
+  if(st.connected){
+    dot(true);
+    document.getElementById('connLabel').textContent = `OANDA ${st.accountId}`;
+    log(`✅ Connected — Balance $${Number(st.balance).toLocaleString()}`);
+  } else {
+    dot(false);
+    document.getElementById('connLabel').textContent = 'Disconnected';
+    log('❌ OANDA connection failed');
+  }
+  await refreshAccount();
+  await refreshPrices();
+  connectWS();
+  setInterval(refreshPrices, 4000);
+  setInterval(refreshAccount, 8000);
+}
+function dot(on){
+  const d=document.getElementById('dotStatus');
+  d.className = on ? 'dot on' : 'dot off';
+}
+
+/* ── ACCOUNT ── */
+async function refreshAccount(){
+  const d = await api('/api/account');
+  if(!d.ok) return;
+  const a = d.account;
+  const bal = Number(a.balance);
+  document.getElementById('rBal').textContent = '$'+bal.toLocaleString(undefined,{minimumFractionDigits:2});
+  document.getElementById('rUsd').textContent = '$'+(bal*0.01).toFixed(2);
+  document.getElementById('rOpen').textContent = a.openTradeCount ?? 0;
+  document.getElementById('tNav').textContent = '$'+Number(a.nav||a.NAV||bal).toLocaleString(undefined,{minimumFractionDigits:2});
+
+  const g = await api('/api/guards');
+  const el = document.getElementById('guardList');
+  if(g.ok){
+    if(g.canTrade){
+      el.innerHTML = '<span style="color:var(--green)">✅ All clear — ready to trade</span>';
+    } else {
+      el.innerHTML = g.warnings.map(w=>`<div style="color:var(--red)">${w}</div>`).join('');
+    }
+  }
+
+  const ts = await api('/api/trader/state');
+  if(ts.ok){
+    const s = ts.state;
+    const wp = s.weekPnl||0, dp = s.dayPnl||0;
+    const wt = 3000;
+    const pct = Math.max(0, Math.min(100, (wp/wt)*100));
+    document.getElementById('tFill').style.width = pct+'%';
+    document.getElementById('tPct').textContent = pct.toFixed(1)+'%';
+    document.getElementById('tWeek').textContent = '$'+wp.toFixed(2);
+    document.getElementById('tDay').textContent = '$'+dp.toFixed(2);
+    document.getElementById('tTrades').textContent = s.openTrades||0;
+  }
+}
+
+/* ── PRICES ── */
+async function refreshPrices(){
+  const d = await api('/api/prices?i='+PAIRS.join(','));
+  if(!d.ok) return;
+  const box = document.getElementById('ticker');
+  box.innerHTML = '';
+  d.prices.forEach(p=>{
+    const prev = lastPrices[p.instrument]||p.mid;
+    const cls = p.mid > prev ? 'up' : p.mid < prev ? 'dn' : '';
+    lastPrices[p.instrument] = p.mid;
+    const digits = p.instrument.includes('JPY') ? 3 : 5;
+    box.innerHTML += `<div class="pair-box ${cls}">
+      <div class="name">${p.instrument.replace('_','/')}</div>
+      <div class="price">${p.mid.toFixed(digits)}</div>
+      <div class="spread">Spread ${(p.spread*(p.instrument.includes('JPY')?100:10000)).toFixed(1)} pip</div>
+    </div>`;
+  });
+}
+
+/* ── WEBSOCKET ── */
+function connectWS(){
+  ws = new WebSocket(WS_URL);
+  ws.onopen = ()=>{ log('📡 WebSocket connected'); };
+  ws.onclose = ()=>{ log('📡 WS disconnected — reconnecting…'); setTimeout(connectWS,3000); };
+  ws.onerror = ()=>{};
+  ws.onmessage = (ev)=>{
+    try{ handleWS(JSON.parse(ev.data)); }catch{}
+  };
+}
+function handleWS(m){
+  switch(m.type){
+    case 'ANALYSIS_COMPLETE':
+      updateBrain(m.payload); break;
+    case 'SIGNAL_DETECTED':
+      updateBrain(m.payload);
+      log(`⚡ SIGNAL: ${m.payload.instrument} ${m.payload.verdict} — Score ${m.payload.confluenceScore}`);
+      break;
+    case 'TRADE_OPENED':
+      log(`🟢 TRADE OPENED: ${m.payload.instrument} ${m.payload.direction} — ${m.payload.lotSize} lots`);
+      refreshAccount(); break;
+    case 'TRADE_CLOSED':
+      log(`📕 TRADE CLOSED: P&L $${m.payload.pnl?.toFixed(2)||'?'}`);
+      refreshAccount(); break;
+    case 'GUARD_ALERT':
+      log(`🛡️ GUARD: ${m.payload.message}`); break;
+    case 'EMERGENCY_STOP':
+      log(`🛑 EMERGENCY STOP: ${m.payload.reason}`); dot(false); break;
+    case 'PNL_UPDATE':
+      const p = m.payload;
+      const pct = Math.max(0,Math.min(100,(p.weekPnl/(p.weekTarget||3000))*100));
+      document.getElementById('tFill').style.width = pct+'%';
+      document.getElementById('tPct').textContent = pct.toFixed(1)+'%';
+      document.getElementById('tWeek').textContent = '$'+(p.weekPnl||0).toFixed(2);
+      document.getElementById('tDay').textContent = '$'+(p.dayPnl||0).toFixed(2);
+      break;
+  }
+}
+
+/* ── BRAIN UPDATE ── */
+function updateBrain(a){
+  brainData = a;
+  const v = a.verdict||'WAIT';
+  const vel = document.getElementById('bVerdict');
+  vel.textContent = v;
+  vel.style.color = v==='LONG'?'var(--green)':v==='SHORT'?'var(--red)':'var(--dim)';
+
+  const wr = a.winRate||0;
+  document.getElementById('bWinRate').textContent = wr+'%';
+  document.getElementById('bWinBar').style.width = wr+'%';
+  document.getElementById('bWinBar').style.background = wr>=65?'var(--green)':wr>=50?'var(--gold)':'var(--red)';
+
+  document.getElementById('bDir').textContent = a.instrument ? a.instrument.replace('_','/')+' '+v : '—';
+  document.getElementById('bConf').textContent = a.confluenceScore||0;
+  document.getElementById('bConfBar').style.width = (a.confluenceScore||0)+'%';
+
+  document.getElementById('tGrade').textContent = a.setupGrade||'—';
+
+  const sb = a.ict?.silverBullet;
+  document.getElementById('silverStatus').textContent = sb ? '🔥 ACTIVE — '+a.ict.timeWindow : '⏳ Outside window';
+
+  const fc = document.getElementById('bFactors');
+  const allFactors = ['Silver Bullet Window','FVG Present','Large FVG','Fresh Imbalance','Directional Momentum','High Confluence'];
+  const active = a.signals||[];
+  fc.innerHTML = allFactors.map(f=>`<span class="factor-tag ${active.includes(f)?'active':''}">${f}</span>`).join('');
+}
+
+/* ── TEST SIGNAL ── */
+async function testSignal(){
+  log('🧪 Firing test signal — EUR/USD M15…');
+  const d = await api('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({instrument:'EUR_USD',timeframe:'M15'})});
+  if(d.ok){
+    updateBrain(d.analysis);
+    log(`✅ Brain 2.5: ${d.analysis.verdict} | Score ${d.analysis.confluenceScore} | WR ${d.analysis.winRate}%`);
+    const acct = await api('/api/account');
+    if(acct.ok){
+      const lc = await api('/api/calc-lot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({instrument:'EUR_USD',accountBalance:acct.account.balance,riskPercent:1,stopLossPips:20})});
+      if(lc.ok){
+        document.getElementById('rLot').textContent = lc.result.lotSize.toFixed(2);
+        document.getElementById('rUnits').textContent = lc.result.units.toLocaleString();
+        document.getElementById('rSL').textContent = lc.result.stopLossPips;
+        document.getElementById('rTP').textContent = lc.result.takeProfitPips;
+      }
+    }
+  } else {
+    log('❌ Test signal failed');
+  }
+}
+
+/* ── TRADER CONTROLS ── */
+async function startTrader(){
+  const d = await api('/api/trader/start',{method:'POST'});
+  if(d.ok) log('▶ Auto-trader started');
+}
+async function stopTrader(){
+  const d = await api('/api/trader/stop',{method:'POST'});
+  if(d.ok) log('⏹ Auto-trader stopped');
+}
+
+/* ── BOOT ── */
+init();
+</script>
+</body>
+</html>
