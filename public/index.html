@@ -199,6 +199,19 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
     <div id="guardList" style="font-size:.82rem;color:var(--green)">✅ All clear — ready to trade</div>
   </div>
 
+
+  <!-- TOKEN MANAGEMENT -->
+  <div class="card" style="grid-column:1/-1">
+    <h2><span class="ico">🔑</span> OANDA Token Management</h2>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <button class="btn btn-purple" onclick="autoFetchToken()">🤖 Auto-Fetch Token</button>
+      <button class="btn" style="background:rgba(255,255,255,.08);color:var(--txt)" onclick="renewToken()">🔄 Renew Token</button>
+      <span id="tokenStatus" style="font-size:.82rem;color:var(--dim);margin-left:8px">—</span>
+    </div>
+    <div id="tokenLog" style="margin-top:12px;font-size:.75rem;color:var(--dim);font-family:'Cascadia Code','Fira Code',monospace;min-height:24px"></div>
+  </div>
+
+
   <!-- ACTIVITY LOG -->
   <div class="card" style="grid-column:1/-1">
     <h2><span class="ico">📋</span> Activity Log</h2>
@@ -413,8 +426,135 @@ async function stopTrader(){
   if(d.ok) log('⏹ Auto-trader stopped');
 }
 
+/* ── TOKEN MANAGEMENT ── */
+async function autoFetchToken() {
+  const statusEl = document.getElementById('tokenStatus');
+  const logEl    = document.getElementById('tokenLog');
+  statusEl.textContent = '⏳ Launching browser login…';
+  statusEl.style.color = 'var(--gold)';
+  logEl.textContent = '';
+  log('🤖 Auto-Fetch Token: starting Playwright login…');
+
+  const d = await api('/api/token/auto-fetch', { method: 'POST' });
+
+  if (d.ok) {
+    statusEl.textContent = '✅ Token saved — reconnecting…';
+    statusEl.style.color = 'var(--green)';
+    logEl.textContent = 'Token saved at ' + new Date().toLocaleTimeString();
+    log('✅ Auto-Fetch Token: new token saved successfully');
+    await init();
+  } else {
+    statusEl.textContent = '❌ Auto-fetch failed';
+    statusEl.style.color = 'var(--red)';
+    logEl.textContent = d.error || 'Unknown error — check server logs';
+    log('❌ Auto-Fetch Token failed: ' + (d.error || 'unknown error'));
+  }
+}
+
+async function renewToken() {
+  const statusEl = document.getElementById('tokenStatus');
+  statusEl.textContent = '⏳ Renewing…';
+  statusEl.style.color = 'var(--gold)';
+  log('🔄 Renew Token: requesting renewal…');
+
+  const d = await api('/api/token/renew', { method: 'POST' });
+
+  if (d.ok) {
+    statusEl.textContent = '✅ Token renewed';
+    statusEl.style.color = 'var(--green)';
+    log('✅ Token renewed successfully');
+    await init();
+  } else {
+    statusEl.textContent = '❌ Renewal failed';
+    statusEl.style.color = 'var(--red)';
+    log('❌ Token renewal failed: ' + (d.error || 'unknown'));
+  }
+}
+
 /* ── BOOT ── */
+  /* ── BACKTESTER ── */
+  async function runBacktest(){
+      const pairs = Array.from(document.querySelectorAll('.bt-pair:checked')).map(c=>c.value);
+      const timeframes = Array.from(document.querySelectorAll('.bt-tf:checked')).map(c=>c.value);
+      if(!pairs.length||!timeframes.length){ log('❌ Backtest: select at least one pair and timeframe'); return; }
+      const cfg = {
+            pairs, timeframes,
+            months: parseInt(document.getElementById('btMonths').value)||3,
+            riskPercent: parseFloat(document.getElementById('btRisk').value)||1,
+            stopLossPips: parseInt(document.getElementById('btSL').value)||20,
+            tpRatio: parseFloat(document.getElementById('btTP').value)||2,
+            minConfluence: parseInt(document.getElementById('btMinConf').value)||60,
+            silverBulletOnly: document.getElementById('btSilverOnly').checked
+      };
+      const btn = document.getElementById('btRunBtn');
+      btn.disabled = true;
+      btn.textContent = '🔄 Running…';
+      document.getElementById('btResults').style.display='none';
+      document.getElementById('btLoading').style.display='flex';
+      log('🔄 Running backtest — fetching candles from OANDA…');
+      const d = await api('/api/backtest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cfg)});
+      btn.disabled=false; btn.textContent='⚡ Run Backtest';
+      document.getElementById('btLoading').style.display='none';
+      if(!d.ok){ log('❌ Backtest failed: '+(d.error||'unknown')); return; }
+      const r = d.results;
+      log(`✅ Backtest done — ${r.totalTrades} trades | WR ${r.winRate}% | PF ${r.profitFactor}`);
+      document.getElementById('btWinRate').textContent = r.winRate+'%';
+      document.getElementById('btPF').textContent = r.profitFactor;
+      document.getElementById('btDD').textContent = r.maxDrawdown+'%';
+      document.getElementById('btNetPnl').textContent = '$'+r.netPnl.toFixed(2);
+      document.getElementById('btReturn').textContent = r.returnPct+'%';
+      document.getElementById('btSharpe').textContent = r.sharpeRatio;
+      document.getElementById('btAvgTrades').textContent = r.avgTradesPerDay;
+      document.getElementById('btWeekProj').textContent = '$'+r.weeklyProjection.toFixed(2);
+      document.getElementById('btTotalTrades').textContent = r.totalTrades;
+      document.getElementById('btWins').textContent = r.wins;
+      document.getElementById('btLosses').textContent = r.losses;
+      document.getElementById('btConsecW').textContent = r.maxConsecWins;
+      document.getElementById('btConsecL').textContent = r.maxConsecLosses;
+      const tbl = document.getElementById('btBreakdown');
+      tbl.innerHTML = '<tr><th>Pair</th><th>TF</th><th>Trades</th><th>WR%</th><th>PF</th><th>Net P&L</th></tr>';
+      (r.breakdown||[]).forEach(b=>{
+            const row = document.createElement('tr');
+            row.innerHTML = `<td>${b.pair.replace('_','/')}</td><td>${b.timeframe}</td><td>${b.trades}</td><td style="color:${b.winRate>=55?'var(--green)':'var(--red)'}">${b.winRate}%</td><td>${b.profitFactor}</td><td style="color:${b.netPnl>=0?'var(--green)':'var(--red)'}">$${b.netPnl.toFixed(2)}</td>`;
+            tbl.appendChild(row);
+      });
+      drawEquityCurve(r.equityCurve||[]);
+      document.getElementById('btResults').style.display='block';
+  }
+
+  function drawEquityCurve(curve){
+      const canvas = document.getElementById('btCanvas');
+      if(!canvas||!curve.length) return;
+      const ctx = canvas.getContext('2d');
+      const W = canvas.width, H = canvas.height;
+      ctx.clearRect(0,0,W,H);
+      const min = Math.min(...curve), max = Math.max(...curve);
+      const range = max-min||1;
+      ctx.strokeStyle = 'rgba(168,85,247,0.3)';
+      ctx.lineWidth = 1;
+      for(let i=1; i<5; i++){
+            const y = H - ((i/4)*H);
+            ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+      }
+      ctx.beginPath();
+      curve.forEach((v,i)=>{
+            const x = (i/(curve.length-1))*W;
+            const y = H - ((v-min)/range)*(H-10) - 5;
+            i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+      });
+      ctx.strokeStyle = 'var(--glow)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      const grad = ctx.createLinearGradient(0,0,0,H);
+      grad.addColorStop(0,'rgba(168,85,247,0.25)');
+      grad.addColorStop(1,'rgba(168,85,247,0)');
+      ctx.lineTo(W,H); ctx.lineTo(0,H);
+      ctx.closePath();
+      ctx.fillStyle = grad;
+      ctx.fill();
+  }
 init();
 </script>
 </body>
 </html>
+h
