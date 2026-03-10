@@ -35,7 +35,7 @@ const brain   = new BrainEngine(oanda);
 const guard   = new PropGuard();
 const journal = new TradeJournal();
 
-// ── Express app ──────────────────────────────────────────────────
+// ── Express app ────────────────────────────────────────────────────
 const app  = express();
 const PORT = parseInt(process.env.PORT || '3000');
 
@@ -44,7 +44,7 @@ app.use(express.json());
 app.use('/api/token', tokenRoutes);
 app.use(express.static(path.join(process.cwd(), 'public')));
 
-// ── HTTP + WebSocket server (single port) ────────────────────────
+// ── HTTP + WebSocket server (single port) ──────────────────────────
 const httpServer = createServer(app);
 const ws         = new SovereignWS(httpServer);
 
@@ -58,10 +58,17 @@ const trader = new AutoTrader(oanda, brain, guard, journal, ws, {
     dayTarget:       parseInt(process.env.DAY_TARGET  || '600'),
 });
 
-// ── REST ENDPOINTS ───────────────────────────────────────────────
+// ── REST ENDPOINTS ─────────────────────────────────────────────────
 app.get('/api/health', async (_, res) =>
     res.json({ status: 'online', ts: new Date().toISOString(), wsClients: ws.clientCount, trader: trader.getState() })
         );
+
+app.get('/api/status', async (_, res) => {
+    try {
+        const acct = await oanda.getAccount();
+        res.json({ ok: true, connected: true, accountId: acct.id ?? OANDA_ID, balance: acct.balance });
+    } catch(e:any){ res.json({ ok: false, connected: false, error: e.message }); }
+});
 
 app.get('/api/account', async (_, res) => {
     try { res.json({ ok: true, account: await oanda.getAccount() }); }
@@ -70,15 +77,15 @@ app.get('/api/account', async (_, res) => {
 
 app.get('/api/prices', async (req, res) => {
     try {
-          const i = (req.query.i as string || 'EUR_USD,GBP_USD,USD_JPY,AUD_USD').split(',');
-          res.json({ ok:true, prices: await oanda.getPrices(i) });
+        const i = (req.query.i as string || 'EUR_USD,GBP_USD,USD_JPY,AUD_USD').split(',');
+        res.json({ ok:true, prices: await oanda.getPrices(i) });
     } catch(e:any){ res.status(500).json({ok:false, error:e.message}); }
 });
 
 app.get('/api/candles/:instrument', async (req,res) => {
     try {
-          const c = await oanda.getCandles(req.params.instrument, (req.query.gran as any)||'M15', parseInt(req.query.count as string||'100'));
-          res.json({ok:true, candles:c});
+        const c = await oanda.getCandles(req.params.instrument, (req.query.gran as any)||'M15', parseInt(req.query.count as string||'100'));
+        res.json({ok:true, candles:c});
     } catch(e:any){ res.status(500).json({ok:false, error:e.message}); }
 });
 
@@ -94,15 +101,15 @@ app.get('/api/guards', async (_, res) => {
 
 app.get('/api/journal', async (_, res) => {
     try {
-          const [e,s] = await Promise.all([journal.getAll(), journal.getWeeklySummary()]);
-          res.json({ok:true, entries:e, summary:s});
+        const [e,s] = await Promise.all([journal.getAll(), journal.getWeeklySummary()]);
+        res.json({ok:true, entries:e, summary:s});
     } catch(e:any){ res.status(500).json({ok:false, error:e.message}); }
 });
 
 app.get('/api/summary', async (_, res) => {
     try {
-          const [a,s] = await Promise.all([oanda.getAccount(), journal.getWeeklySummary()]);
-          res.json({ok:true, account:a, summary:s, traderState:trader.getState()});
+        const [a,s] = await Promise.all([oanda.getAccount(), journal.getWeeklySummary()]);
+        res.json({ok:true, account:a, summary:s, traderState:trader.getState()});
     } catch(e:any){ res.status(500).json({ok:false, error:e.message}); }
 });
 
@@ -115,37 +122,37 @@ app.post('/api/calc-lot', async (req, res) => {
 
 app.post('/api/analyze', async (req, res) => {
     try {
-          const { instrument='EUR_USD', timeframe='M15' } = req.body;
-          const analysis = await brain.analyze(instrument, timeframe);
-          ws.emitAnalysis(analysis);
-          res.json({ ok:true, analysis });
+        const { instrument='EUR_USD', timeframe='M15' } = req.body;
+        const analysis = await brain.analyze(instrument, timeframe);
+        ws.emitAnalysis(analysis);
+        res.json({ ok:true, analysis });
     } catch(e:any){ res.status(500).json({ ok:false, error:e.message }); }
 });
 
 app.post('/api/trade', async (req, res) => {
     try {
-          const { instrument, direction, riskPercent, stopLossPips, comment } = req.body;
-          const account  = await oanda.getAccount();
-          const guards   = guard.check(account);
-          if (!guards.canTrade) return res.status(403).json({ ok:false, blocked:true, warnings:guards.warnings });
-          const lotCalc  = await oanda.calcLotSize({ instrument, accountBalance:account.balance, riskPercent:riskPercent||1, stopLossPips:stopLossPips||20 });
-          const [price]  = await oanda.getPrices([instrument]);
-          const entry    = direction==='long' ? price.ask : price.bid;
-          const units    = direction==='long' ? lotCalc.units : -lotCalc.units;
-          const sl       = priceToStopLoss(instrument, entry, stopLossPips||20, direction);
-          const tp       = priceToTakeProfit(instrument, entry, lotCalc.takeProfitPips, direction);
-          const result   = await oanda.placeOrder({ instrument, units, stopLoss:sl, takeProfit:tp, type:'MARKET', comment });
-          await journal.addEntry({ tradeId:result.tradeId, instrument, direction, units:lotCalc.units, lotSize:lotCalc.lotSize, entry, stopLoss:sl, takeProfit:tp, riskUSD:lotCalc.dollarRisk, comment:comment||'' });
-          ws.emitTradeOpened({ id:result.tradeId, instrument, direction, units:lotCalc.units, lotSize:lotCalc.lotSize, entry, stopLoss:sl, takeProfit:tp, riskUSD:lotCalc.dollarRisk, patterns:[] });
-          res.json({ ok:true, result, lotCalc, entry, stopLoss:sl, takeProfit:tp });
+        const { instrument, direction, riskPercent, stopLossPips, comment } = req.body;
+        const account  = await oanda.getAccount();
+        const guards   = guard.check(account);
+        if (!guards.canTrade) return res.status(403).json({ ok:false, blocked:true, warnings:guards.warnings });
+        const lotCalc  = await oanda.calcLotSize({ instrument, accountBalance:account.balance, riskPercent:riskPercent||1, stopLossPips:stopLossPips||20 });
+        const [price]  = await oanda.getPrices([instrument]);
+        const entry    = direction==='long' ? price.ask : price.bid;
+        const units    = direction==='long' ? lotCalc.units : -lotCalc.units;
+        const sl       = priceToStopLoss(instrument, entry, stopLossPips||20, direction);
+        const tp       = priceToTakeProfit(instrument, entry, lotCalc.takeProfitPips, direction);
+        const result   = await oanda.placeOrder({ instrument, units, stopLoss:sl, takeProfit:tp, type:'MARKET', comment });
+        await journal.addEntry({ tradeId:result.tradeId, instrument, direction, units:lotCalc.units, lotSize:lotCalc.lotSize, entry, stopLoss:sl, takeProfit:tp, riskUSD:lotCalc.dollarRisk, comment });
+        ws.emitTradeOpened({ id:result.tradeId, instrument, direction, units:lotCalc.units, lotSize:lotCalc.lotSize, entry, stopLoss:sl, takeProfit:tp, riskUSD:lotCalc.dollarRisk, patterns:[] });
+        res.json({ ok:true, result, lotCalc, entry, stopLoss:sl, takeProfit:tp });
     } catch(e:any){ res.status(500).json({ ok:false, error:e.message }); }
 });
 
 app.delete('/api/trade/:id', async (req, res) => {
     try {
-          const pnl = await oanda.closeTrade(req.params.id);
-          ws.emitTradeClosed({id:req.params.id, instrument:'', pnl, exitPrice:0, reason:'Manual'});
-          res.json({ok:true, pnl});
+        const pnl = await oanda.closeTrade(req.params.id);
+        ws.emitTradeClosed({id:req.params.id, instrument:'', pnl, exitPrice:0, reason:'Manual'});
+        res.json({ok:true, pnl});
     } catch(e:any){ res.status(500).json({ok:false, error:e.message}); }
 });
 
@@ -159,10 +166,20 @@ app.post('/api/trader/stop',   (_, res) => { trader.stop();   res.json({ ok:true
 app.post('/api/trader/pause',  (_, res) => { trader.pause();  res.json({ ok:true }); });
 app.post('/api/trader/resume', (_, res) => { trader.resume(); res.json({ ok:true }); });
 
-// ── BACKTEST ENDPOINT ────────────────────────────────────────────app.post('/api/backtest', async (req, res) => {
+// ── BACKTEST ENDPOINT ──────────────────────────────────────────────
+app.post('/api/backtest', async (req, res) => {
     try {
-          const acct = await oanda.getAccount();
-          res.json({ ok:true, connected:true, accountId: acct.id ?? OANDA_ID, balance: acct.balance });
+        const { pairs, startDate, endDate, initialBalance } = req.body;
+        const results = await runMultiBacktest(pairs, startDate, endDate, initialBalance);
+        res.json({ ok:true, results });
+    } catch(e:any){ res.status(500).json({ok:false, error:e.message}); }
+});
+
+// ── OANDA CONNECTION CHECK ─────────────────────────────────────────
+app.get('/api/oanda/check', async (_, res) => {
+    try {
+        const acct = await oanda.getAccount();
+        res.json({ ok:true, connected:true, accountId: acct.id ?? OANDA_ID, balance: acct.balance });
     } catch(e:any){ res.status(500).json({ ok:false, connected:false, error:e.message }); }
 });
 
@@ -170,23 +187,23 @@ app.use((req, res) => {
     res.sendFile(path.join(process.cwd(), 'public', 'index.html'));
 });
 
-// ── START ────────────────────────────────────────────────────────
+// ── START ──────────────────────────────────────────────────────────
 httpServer.listen(PORT, () => {
     console.log(`\n⚡ ═══════════════════════════════════`);
-    console.log(` SOVEREIGN FOREX PRIME — ONLINE`);
-    console.log(` Dashboard  : http://localhost:${PORT}`);
-    console.log(` WebSocket  : wss://host/ws`);
-    console.log(` Mode       : ${process.env.OANDA_PRACTICE==='true'?'📊 PAPER':'💰 LIVE'}`);
-    console.log(` Account    : ${OANDA_ID}`);
-    console.log(` Target     : $${process.env.WEEK_TARGET||3000}/week`);
+    console.log(`   SOVEREIGN FOREX PRIME — ONLINE`);
+    console.log(`   Dashboard  : http://localhost:${PORT}`);
+    console.log(`   WebSocket  : wss://host/ws`);
+    console.log(`   Mode       : ${process.env.OANDA_PRACTICE==='true'?'📊 PAPER':'💰 LIVE'}`);
+    console.log(`   Account    : ${OANDA_ID}`);
+    console.log(`   Target     : $${process.env.WEEK_TARGET||3000}/week`);
     (async () => {
-          try {
-                  const acct = await oanda.getAccount();
-                  console.log(` OANDA      : CONNECTED — Balance ${acct.currency||''} ${acct.balance}`);
-          } catch(e:any) {
-                  console.error(` OANDA      : CONNECTION ERROR — ${e.message}`);
-          }
-          console.log(`⚡ ═══════════════════════════════════\n`);
+        try {
+            const acct = await oanda.getAccount();
+            console.log(`   OANDA      : CONNECTED — Balance ${acct.currency||''} ${acct.balance}`);
+        } catch(e:any) {
+            console.error(`   OANDA      : CONNECTION ERROR — ${e.message}`);
+        }
+        console.log(`⚡ ═══════════════════════════════════\n`);
     })();
     trader.start();
 });
