@@ -12,7 +12,7 @@ import { BrainEngine }  from './src/strategies/brainEngine.js';
 import { PropGuard }    from './src/guards/propGuard.js';
 import { TradeJournal } from './src/journal/tradeJournal.js';
 import { SovereignWS }  from './wsServer.js';
-import { AutoTrader }   from './autoTrader.js';
+import { AutoTrader }   from './autoTrader.js';import { runMultiBacktest } from './src/backtester/backtester.js';
 
 dotenv.config();
 
@@ -156,7 +156,7 @@ app.post('/api/trader/stop',   (_, res) => { trader.stop();   res.json({ ok:true
 app.post('/api/trader/pause',  (_, res) => { trader.pause();  res.json({ ok:true }); });
 app.post('/api/trader/resume', (_, res) => { trader.resume(); res.json({ ok:true }); });
 
-app.get('/api/status', async (_, res) => {
+// ── BACKTEST ENDPOINT ────────────────────────────────────────────app.post('/api/backtest', async (req, res) => {
     try {
           const acct = await oanda.getAccount();
           res.json({ ok:true, connected:true, accountId: acct.id ?? OANDA_ID, balance: acct.balance });
