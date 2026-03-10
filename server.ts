@@ -12,7 +12,8 @@ import { BrainEngine }  from './src/strategies/brainEngine.js';
 import { PropGuard }    from './src/guards/propGuard.js';
 import { TradeJournal } from './src/journal/tradeJournal.js';
 import { SovereignWS }  from './wsServer.js';
-import { AutoTrader }   from './autoTrader.js';import { runMultiBacktest } from './src/backtester/backtester.js';
+import { AutoTrader }           from './autoTrader.js';
+import { runMultiBacktest }      from './src/backtester/backtester.js';
 
 dotenv.config();
 
