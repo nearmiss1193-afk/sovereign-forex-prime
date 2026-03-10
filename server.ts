@@ -14,6 +14,7 @@ import { TradeJournal } from './src/journal/tradeJournal.js';
 import { SovereignWS }  from './wsServer.js';
 import { AutoTrader }           from './autoTrader.js';
 import { runMultiBacktest }      from './src/backtester/backtester.js';
+import tokenRoutes             from './src/routes/tokenRoutes.js';
 
 dotenv.config();
 
@@ -40,6 +41,7 @@ const PORT = parseInt(process.env.PORT || '3000');
 
 app.use(cors());
 app.use(express.json());
+app.use('/api/token', tokenRoutes);
 app.use(express.static(path.join(process.cwd(), 'public')));
 
 // ── HTTP + WebSocket server (single port) ────────────────────────
