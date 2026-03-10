@@ -166,13 +166,91 @@ app.post('/api/trader/stop',   (_, res) => { trader.stop();   res.json({ ok:true
 app.post('/api/trader/pause',  (_, res) => { trader.pause();  res.json({ ok:true }); });
 app.post('/api/trader/resume', (_, res) => { trader.resume(); res.json({ ok:true }); });
 
-// ── BACKTEST ENDPOINT ──────────────────────────────────────────────
+// ── BACKTEST ENDPOINT ────────────────────────────────────────────────
 app.post('/api/backtest', async (req, res) => {
     try {
-        const { pairs, startDate, endDate, initialBalance } = req.body;
-        const results = await runMultiBacktest(pairs, startDate, endDate, initialBalance);
-        res.json({ ok:true, results });
-    } catch(e:any){ res.status(500).json({ok:false, error:e.message}); }
+        const {
+            pairs           = ['EUR_USD'],
+            timeframes      = ['M15'],
+            months          = 24,
+            initialBalance  = 100_000,
+            riskPercent     = 1,
+            stopLossPips    = 20,
+            tpRatio         = 2,
+            minConfluence   = 65,
+            slippagePips    = 1,
+            commissionPips  = 0.5,
+            silverBulletOnly = false,
+        } = req.body;
+
+        const apiKey = process.env.OANDA_API_KEY;
+        if (!apiKey) return res.status(500).json({ ok: false, error: 'OANDA_API_KEY not set' });
+
+        const endDate   = new Date();
+        const startDate = new Date();
+        startDate.setMonth(startDate.getMonth() - Math.min(months, 24));
+
+        const baseConfig = {
+            startDate,
+            endDate,
+            initialBalance,
+            riskPercent,
+            stopLossPips,
+            takeProfitRatio: tpRatio,
+            minConfluence,
+            slippagePips,
+            commissionPips,
+            silverBulletOnly,
+        };
+
+        const multiResult = await runMultiBacktest(pairs, timeframes, baseConfig, apiKey);
+        const c = multiResult.combined;
+        const firstResult = multiResult.results[0];
+
+        const breakdown = multiResult.results.map((r: any) => ({
+            pair:         r.config.pair,
+            timeframe:    r.config.timeframe,
+            trades:       r.totalTrades,
+            winRate:      r.winRate,
+            profitFactor: r.profitFactor,
+            netPnl:       r.netPnL,
+            maxDrawdown:  r.maxDrawdown,
+            sharpeRatio:  r.sharpeRatio,
+            weeklyProj:   r.weeklyProjection,
+        }));
+
+        res.json({
+            ok: true,
+            totalTrades:      c.totalTrades,
+            wins:             c.wins,
+            losses:           c.totalTrades - c.wins,
+            winRate:          c.winRate,
+            profitFactor:     c.profitFactor,
+            netPnl:           c.netPnL,
+            maxDrawdown:      c.maxDrawdown,
+            sharpeRatio:      c.sharpeRatio,
+            weeklyProjection: c.weeklyProjection,
+            avgTradesPerDay:  firstResult?.avgTradesPerDay ?? 0,
+            returnPct:        firstResult?.returnPct ?? 0,
+            finalBalance:     firstResult?.finalBalance ?? initialBalance,
+            avgWin:           firstResult?.avgWin ?? 0,
+            avgLoss:          firstResult?.avgLoss ?? 0,
+            avgRR:            firstResult?.avgRR ?? 0,
+            maxConsecWins:    firstResult?.consecutiveWins ?? 0,
+            maxConsecLosses:  firstResult?.consecutiveLosses ?? 0,
+            bestTrade:        firstResult?.bestTrade ?? 0,
+            worstTrade:       firstResult?.worstTrade ?? 0,
+            byGrade:          firstResult?.byGrade ?? {},
+            bySignal:         firstResult?.bySignal ?? {},
+            equityCurve:      (firstResult?.equityCurve ?? []).map((e: any) => e.balance),
+            breakdown,
+            durationMs:       multiResult.durationMs,
+            config: { pairs, timeframes, months, initialBalance, riskPercent, stopLossPips, tpRatio, minConfluence },
+        });
+    } catch(e: any) {
+        console.error('[backtest]', e);
+        res.status(500).json({ ok:false, error:e.message });
+    }
 });
 
 // ── OANDA CONNECTION CHECK ─────────────────────────────────────────
