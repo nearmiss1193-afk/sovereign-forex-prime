@@ -212,7 +212,96 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   </div>
 
 
-  <!-- ACTIVITY LOG -->
+  <!-- BACKTESTER CARD -->
+    <div class="card" style="grid-column:1/-1" id="btCard">
+      <h2><span class="ico">&#x1F52C;</span> Brain 2.5 Backtester — Strategy Validator</h2>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px;align-items:flex-end">
+        <div>
+          <div style="font-size:.72rem;color:var(--dim);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">Pairs</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <label style="font-size:.8rem;display:flex;align-items:center;gap:4px"><input type="checkbox" class="bt-pair" value="EUR_USD" checked> EUR/USD</label>
+            <label style="font-size:.8rem;display:flex;align-items:center;gap:4px"><input type="checkbox" class="bt-pair" value="GBP_USD"> GBP/USD</label>
+            <label style="font-size:.8rem;display:flex;align-items:center;gap:4px"><input type="checkbox" class="bt-pair" value="USD_JPY"> USD/JPY</label>
+            <label style="font-size:.8rem;display:flex;align-items:center;gap:4px"><input type="checkbox" class="bt-pair" value="AUD_USD"> AUD/USD</label>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:.72rem;color:var(--dim);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">Timeframe</div>
+          <div style="display:flex;gap:8px">
+            <label style="font-size:.8rem;display:flex;align-items:center;gap:4px"><input type="checkbox" class="bt-tf" value="M15" checked> M15</label>
+            <label style="font-size:.8rem;display:flex;align-items:center;gap:4px"><input type="checkbox" class="bt-tf" value="H1"> H1</label>
+          </div>
+        </div>
+        <div><div style="font-size:.72rem;color:var(--dim);text-transform:uppercase;letter-spacing:.7px;margin-bottom:4px">Period</div>
+          <select id="btMonths" style="background:rgba(255,255,255,.06);color:var(--txt);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:.82rem">
+            <option value="3">3 months</option><option value="6">6 months</option>
+            <option value="12">12 months</option><option value="24" selected>24 months</option>
+          </select>
+        </div>
+        <div><div style="font-size:.72rem;color:var(--dim);text-transform:uppercase;letter-spacing:.7px;margin-bottom:4px">Risk %</div>
+          <input id="btRisk" type="number" value="1" min="0.1" max="5" step="0.1" style="width:70px;background:rgba(255,255,255,.06);color:var(--txt);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:.82rem">
+        </div>
+        <div><div style="font-size:.72rem;color:var(--dim);text-transform:uppercase;letter-spacing:.7px;margin-bottom:4px">SL Pips</div>
+          <input id="btSL" type="number" value="20" min="5" max="100" style="width:70px;background:rgba(255,255,255,.06);color:var(--txt);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:.82rem">
+        </div>
+        <div><div style="font-size:.72rem;color:var(--dim);text-transform:uppercase;letter-spacing:.7px;margin-bottom:4px">TP Ratio</div>
+          <input id="btTP" type="number" value="2" min="1" max="5" step="0.5" style="width:70px;background:rgba(255,255,255,.06);color:var(--txt);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:.82rem">
+        </div>
+        <div><div style="font-size:.72rem;color:var(--dim);text-transform:uppercase;letter-spacing:.7px;margin-bottom:4px">Min Score</div>
+          <input id="btMinConf" type="number" value="65" min="40" max="95" style="width:70px;background:rgba(255,255,255,.06);color:var(--txt);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:.82rem">
+        </div>
+        <label style="font-size:.8rem;display:flex;align-items:center;gap:6px;padding-top:18px"><input type="checkbox" id="btSilverOnly"> ICT Sessions Only</label>
+        <button id="btRunBtn" class="btn btn-purple" onclick="runBacktest()" style="margin-top:18px;padding:10px 28px;font-size:.88rem">&#x26A1; Run Backtest</button>
+      </div>
+      <div id="btLoading" style="display:none;align-items:center;gap:14px;padding:20px 0;color:var(--glow)">
+        <div style="width:24px;height:24px;border:3px solid var(--border);border-top-color:var(--glow);border-radius:50%;animation:spin 1s linear infinite"></div>
+        <span id="btLoadingMsg">Fetching candles from OANDA…</span>
+      </div>
+      <div id="btResults" style="display:none">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:16px">
+          <div class="risk-stat"><div class="lbl">Win Rate</div><div class="val" id="btWinRate" style="color:var(--green)">—</div></div>
+          <div class="risk-stat"><div class="lbl">Profit Factor</div><div class="val" id="btPF" style="color:var(--glow)">—</div></div>
+          <div class="risk-stat"><div class="lbl">Max Drawdown</div><div class="val" id="btDD" style="color:var(--red)">—</div></div>
+          <div class="risk-stat"><div class="lbl">Net P&amp;L</div><div class="val" id="btNetPnl">—</div></div>
+          <div class="risk-stat"><div class="lbl">Return %</div><div class="val" id="btReturn" style="color:var(--cyan)">—</div></div>
+          <div class="risk-stat"><div class="lbl">Sharpe Ratio</div><div class="val" id="btSharpe" style="color:var(--gold)">—</div></div>
+          <div class="risk-stat"><div class="lbl">Avg Trades/Day</div><div class="val" id="btAvgTrades">—</div></div>
+          <div class="risk-stat"><div class="lbl">Weekly Projection</div><div class="val" id="btWeekProj" style="color:var(--green)">—</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px">
+          <div class="risk-stat"><div class="lbl">Total Trades</div><div class="val" id="btTotalTrades">—</div></div>
+          <div class="risk-stat"><div class="lbl">Wins</div><div class="val green" id="btWins">—</div></div>
+          <div class="risk-stat"><div class="lbl">Losses</div><div class="val" style="color:var(--red)" id="btLosses">—</div></div>
+          <div class="risk-stat"><div class="lbl">Avg Win</div><div class="val" id="btAvgWin" style="color:var(--green)">—</div></div>
+          <div class="risk-stat"><div class="lbl">Avg Loss</div><div class="val" id="btAvgLoss" style="color:var(--red)">—</div></div>
+          <div class="risk-stat"><div class="lbl">Avg R:R</div><div class="val" id="btAvgRR" style="color:var(--gold)">—</div></div>
+          <div class="risk-stat"><div class="lbl">Max Consec W</div><div class="val" id="btConsecW" style="color:var(--green)">—</div></div>
+          <div class="risk-stat"><div class="lbl">Max Consec L</div><div class="val" id="btConsecL" style="color:var(--red)">—</div></div>
+          <div class="risk-stat"><div class="lbl">Best Trade</div><div class="val" id="btBest" style="color:var(--green)">—</div></div>
+          <div class="risk-stat"><div class="lbl">Worst Trade</div><div class="val" id="btWorst" style="color:var(--red)">—</div></div>
+        </div>
+        <div id="btPropBanner" style="padding:12px 18px;border-radius:10px;margin-bottom:16px;font-size:.83rem;font-weight:600;border:1px solid"></div>
+        <div style="margin-bottom:16px">
+          <div style="font-size:.78rem;color:var(--dim);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Equity Curve</div>
+          <canvas id="btCanvas" width="900" height="160" style="width:100%;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid var(--border)"></canvas>
+        </div>
+        <div style="margin-bottom:16px">
+          <div style="font-size:.78rem;color:var(--dim);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Grade Breakdown</div>
+          <div id="btGradeRows" style="display:flex;gap:10px;flex-wrap:wrap"></div>
+        </div>
+        <div style="margin-bottom:16px">
+          <div style="font-size:.78rem;color:var(--dim);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Signal Hit Rate</div>
+          <div id="btSignalRows" style="display:flex;gap:10px;flex-wrap:wrap"></div>
+        </div>
+        <div>
+          <div style="font-size:.78rem;color:var(--dim);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Per-Pair Breakdown</div>
+          <div style="overflow-x:auto"><table id="btBreakdown" style="width:100%;border-collapse:collapse;font-size:.8rem"></table></div>
+        </div>
+        <div style="margin-top:12px;font-size:.72rem;color:var(--dim)" id="btRunInfo"></div>
+      </div>
+    </div>
+
+    <!-- ACTIVITY LOG -->
   <div class="card" style="grid-column:1/-1">
     <h2><span class="ico">📋</span> Activity Log</h2>
     <div id="log"></div>
@@ -474,86 +563,71 @@ async function renewToken() {
 /* ── BOOT ── */
   /* ── BACKTESTER ── */
   async function runBacktest(){
-      const pairs = Array.from(document.querySelectorAll('.bt-pair:checked')).map(c=>c.value);
-      const timeframes = Array.from(document.querySelectorAll('.bt-tf:checked')).map(c=>c.value);
-      if(!pairs.length||!timeframes.length){ log('❌ Backtest: select at least one pair and timeframe'); return; }
-      const cfg = {
-            pairs, timeframes,
-            months: parseInt(document.getElementById('btMonths').value)||3,
-            riskPercent: parseFloat(document.getElementById('btRisk').value)||1,
-            stopLossPips: parseInt(document.getElementById('btSL').value)||20,
-            tpRatio: parseFloat(document.getElementById('btTP').value)||2,
-            minConfluence: parseInt(document.getElementById('btMinConf').value)||60,
-            silverBulletOnly: document.getElementById('btSilverOnly').checked
-      };
-      const btn = document.getElementById('btRunBtn');
-      btn.disabled = true;
-      btn.textContent = '🔄 Running…';
-      document.getElementById('btResults').style.display='none';
-      document.getElementById('btLoading').style.display='flex';
-      log('🔄 Running backtest — fetching candles from OANDA…');
-      const d = await api('/api/backtest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cfg)});
-      btn.disabled=false; btn.textContent='⚡ Run Backtest';
-      document.getElementById('btLoading').style.display='none';
-      if(!d.ok){ log('❌ Backtest failed: '+(d.error||'unknown')); return; }
-      const r = d.results;
-      log(`✅ Backtest done — ${r.totalTrades} trades | WR ${r.winRate}% | PF ${r.profitFactor}`);
-      document.getElementById('btWinRate').textContent = r.winRate+'%';
-      document.getElementById('btPF').textContent = r.profitFactor;
-      document.getElementById('btDD').textContent = r.maxDrawdown+'%';
-      document.getElementById('btNetPnl').textContent = '$'+r.netPnl.toFixed(2);
-      document.getElementById('btReturn').textContent = r.returnPct+'%';
-      document.getElementById('btSharpe').textContent = r.sharpeRatio;
-      document.getElementById('btAvgTrades').textContent = r.avgTradesPerDay;
-      document.getElementById('btWeekProj').textContent = '$'+r.weeklyProjection.toFixed(2);
-      document.getElementById('btTotalTrades').textContent = r.totalTrades;
-      document.getElementById('btWins').textContent = r.wins;
-      document.getElementById('btLosses').textContent = r.losses;
-      document.getElementById('btConsecW').textContent = r.maxConsecWins;
-      document.getElementById('btConsecL').textContent = r.maxConsecLosses;
-      const tbl = document.getElementById('btBreakdown');
-      tbl.innerHTML = '<tr><th>Pair</th><th>TF</th><th>Trades</th><th>WR%</th><th>PF</th><th>Net P&L</th></tr>';
-      (r.breakdown||[]).forEach(b=>{
-            const row = document.createElement('tr');
-            row.innerHTML = `<td>${b.pair.replace('_','/')}</td><td>${b.timeframe}</td><td>${b.trades}</td><td style="color:${b.winRate>=55?'var(--green)':'var(--red)'}">${b.winRate}%</td><td>${b.profitFactor}</td><td style="color:${b.netPnl>=0?'var(--green)':'var(--red)'}">$${b.netPnl.toFixed(2)}</td>`;
-            tbl.appendChild(row);
-      });
-      drawEquityCurve(r.equityCurve||[]);
-      document.getElementById('btResults').style.display='block';
+    const pairs=Array.from(document.querySelectorAll('.bt-pair:checked')).map(c=>c.value);
+    const timeframes=Array.from(document.querySelectorAll('.bt-tf:checked')).map(c=>c.value);
+    if(!pairs.length||!timeframes.length){log('Backtest: select at least one pair and timeframe');return;}
+    const cfg={pairs,timeframes,months:parseInt(document.getElementById('btMonths').value)||24,riskPercent:parseFloat(document.getElementById('btRisk').value)||1,stopLossPips:parseInt(document.getElementById('btSL').value)||20,tpRatio:parseFloat(document.getElementById('btTP').value)||2,minConfluence:parseInt(document.getElementById('btMinConf').value)||65,silverBulletOnly:document.getElementById('btSilverOnly').checked,initialBalance:100000,slippagePips:1,commissionPips:0.5};
+    const btn=document.getElementById('btRunBtn');
+    btn.disabled=true;btn.textContent='Running...';
+    document.getElementById('btResults').style.display='none';
+    document.getElementById('btLoading').style.display='flex';
+    document.getElementById('btLoadingMsg').textContent='Fetching '+cfg.months+'mo of '+pairs.join('+')+'...';
+    log('Backtest started - '+pairs.join(',')+'  '+timeframes.join('+')+'  '+cfg.months+'mo');
+    const d=await api('/api/backtest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cfg)});
+    btn.disabled=false;btn.textContent='Run Backtest';
+    document.getElementById('btLoading').style.display='none';
+    if(!d.ok){log('Backtest failed: '+(d.error||'unknown'));return;}
+    log('Backtest done - '+d.totalTrades+' trades | WR '+d.winRate+'% | PF '+d.profitFactor+' | DD '+d.maxDrawdown+'% | Proj $'+(d.weeklyProjection||0).toFixed(0)+'/wk');
+    const $=id=>document.getElementById(id);
+    const fmt=v=>'$'+Number(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+    $('btWinRate').textContent=d.winRate+'%';$('btWinRate').style.color=d.winRate>=55?'var(--green)':d.winRate>=45?'var(--gold)':'var(--red)';
+    $('btPF').textContent=d.profitFactor;$('btPF').style.color=d.profitFactor>=1.5?'var(--green)':d.profitFactor>=1?'var(--gold)':'var(--red)';
+    $('btDD').textContent=d.maxDrawdown+'%';$('btDD').style.color=d.maxDrawdown<=5?'var(--green)':d.maxDrawdown<=8?'var(--gold)':'var(--red)';
+    $('btNetPnl').textContent=fmt(d.netPnl);$('btNetPnl').style.color=d.netPnl>=0?'var(--green)':'var(--red)';
+    $('btReturn').textContent=d.returnPct+'%';$('btReturn').style.color=d.returnPct>=0?'var(--cyan)':'var(--red)';
+    $('btSharpe').textContent=d.sharpeRatio;$('btSharpe').style.color=d.sharpeRatio>=1?'var(--gold)':'var(--dim)';
+    $('btAvgTrades').textContent=d.avgTradesPerDay;
+    $('btWeekProj').textContent=fmt(d.weeklyProjection);$('btWeekProj').style.color=d.weeklyProjection>=3000?'var(--green)':d.weeklyProjection>=600?'var(--gold)':'var(--dim)';
+    $('btTotalTrades').textContent=d.totalTrades;$('btWins').textContent=d.wins;$('btLosses').textContent=d.losses;
+    $('btAvgWin').textContent=fmt(d.avgWin);$('btAvgLoss').textContent=fmt(d.avgLoss);
+    $('btAvgRR').textContent=d.avgRR+':1';$('btConsecW').textContent=d.maxConsecWins;$('btConsecL').textContent=d.maxConsecLosses;
+    $('btBest').textContent=fmt(d.bestTrade);$('btWorst').textContent=fmt(d.worstTrade);
+    const banner=$('btPropBanner');
+    const passes=[d.maxDrawdown<=8,d.winRate>=50,d.profitFactor>=1.2,d.weeklyProjection>=600].filter(Boolean).length;
+    if(passes===4){banner.style.background='rgba(34,197,94,.15)';banner.style.borderColor='var(--green)';banner.style.color='var(--green)';banner.innerHTML='PROP FIRM READY - All key metrics pass. DD <=8%, WR >=50%, PF >=1.2, Projection >=$600/wk.';}
+    else if(passes>=2){banner.style.background='rgba(250,204,21,.1)';banner.style.borderColor='var(--gold)';banner.style.color='var(--gold)';banner.innerHTML='NEEDS WORK - '+passes+'/4 metrics pass.';}
+    else{banner.style.background='rgba(239,68,68,.1)';banner.style.borderColor='var(--red)';banner.style.color='var(--red)';banner.innerHTML='NOT READY - Do NOT fund a prop account yet.';}
+    drawEquityCurve(d.equityCurve||[]);
+    const gradeEl=$('btGradeRows');gradeEl.innerHTML='';
+    for(const[grade,gd]of Object.entries(d.byGrade||{})){const g=gd;const wr=g.trades?((g.wins/g.trades)*100).toFixed(0):0;gradeEl.innerHTML+='<div class="risk-stat" style="min-width:110px"><div class="lbl">Grade '+grade+'</div><div class="val" style="color:var(--gold)">'+g.trades+' trades</div><div style="font-size:.72rem;color:var(--green);margin-top:2px">'+wr+'% WR</div></div>';}
+    const sigEl=$('btSignalRows');sigEl.innerHTML='';
+    for(const[sig,sd]of Object.entries(d.bySignal||{})){const s=sd;const wr=s.trades?((s.wins/s.trades)*100).toFixed(0):0;sigEl.innerHTML+='<span class="factor-tag '+(Number(wr)>=55?'active':'')+'" title="'+s.trades+' trades">'+sig+': '+wr+'%</span>';}
+    const tbl=$('btBreakdown');
+    tbl.innerHTML='<tr><th style="padding:8px 12px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06);color:var(--dim);font-size:.72rem;text-transform:uppercase">Pair</th><th style="padding:8px 12px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06);color:var(--dim);font-size:.72rem;text-transform:uppercase">TF</th><th style="padding:8px 12px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06);color:var(--dim);font-size:.72rem;text-transform:uppercase">Trades</th><th style="padding:8px 12px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06);color:var(--dim);font-size:.72rem;text-transform:uppercase">WR%</th><th style="padding:8px 12px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06);color:var(--dim);font-size:.72rem;text-transform:uppercase">PF</th><th style="padding:8px 12px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06);color:var(--dim);font-size:.72rem;text-transform:uppercase">Net P&L</th><th style="padding:8px 12px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06);color:var(--dim);font-size:.72rem;text-transform:uppercase">Wk Proj</th></tr>';
+    (d.breakdown||[]).forEach(b=>{const row=document.createElement('tr');row.innerHTML='<td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.06);font-weight:700">'+b.pair.replace('_','/')+'</td><td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.06)">'+b.timeframe+'</td><td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.06)">'+b.trades+'</td><td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.06);color:'+(b.winRate>=55?'var(--green)':b.winRate>=45?'var(--gold)':'var(--red)')+'">'+b.winRate+'%</td><td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.06);color:'+(b.profitFactor>=1.5?'var(--green)':b.profitFactor>=1?'var(--gold)':'var(--red)')+'">'+b.profitFactor+'</td><td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.06);color:'+(b.netPnl>=0?'var(--green)':'var(--red)')+'">$'+(b.netPnl||0).toFixed(0)+'</td><td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.06);color:'+((b.weeklyProj||0)>=3000?'var(--green)':(b.weeklyProj||0)>=600?'var(--gold)':'var(--dim)')+'">$'+(b.weeklyProj||0).toFixed(0)+'</td>';tbl.appendChild(row);});
+    $('btRunInfo').textContent='Done in '+(d.durationMs/1000).toFixed(1)+'s - '+cfg.months+'mo - '+pairs.join(', ')+' - '+timeframes.join('+');
+    $('btResults').style.display='block';
+    $('btResults').scrollIntoView({behavior:'smooth',block:'start'});
   }
 
   function drawEquityCurve(curve){
-      const canvas = document.getElementById('btCanvas');
-      if(!canvas||!curve.length) return;
-      const ctx = canvas.getContext('2d');
-      const W = canvas.width, H = canvas.height;
-      ctx.clearRect(0,0,W,H);
-      const min = Math.min(...curve), max = Math.max(...curve);
-      const range = max-min||1;
-      ctx.strokeStyle = 'rgba(168,85,247,0.3)';
-      ctx.lineWidth = 1;
-      for(let i=1; i<5; i++){
-            const y = H - ((i/4)*H);
-            ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
-      }
-      ctx.beginPath();
-      curve.forEach((v,i)=>{
-            const x = (i/(curve.length-1))*W;
-            const y = H - ((v-min)/range)*(H-10) - 5;
-            i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
-      });
-      ctx.strokeStyle = 'var(--glow)';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      const grad = ctx.createLinearGradient(0,0,0,H);
-      grad.addColorStop(0,'rgba(168,85,247,0.25)');
-      grad.addColorStop(1,'rgba(168,85,247,0)');
-      ctx.lineTo(W,H); ctx.lineTo(0,H);
-      ctx.closePath();
-      ctx.fillStyle = grad;
-      ctx.fill();
+    const canvas=document.getElementById('btCanvas');
+    if(!canvas||!curve.length)return;
+    const ctx=canvas.getContext('2d');const W=canvas.offsetWidth||900;const H=canvas.height;
+    canvas.width=W;ctx.clearRect(0,0,W,H);
+    const min=Math.min(...curve),max=Math.max(...curve),range=max-min||1;
+    ctx.strokeStyle='rgba(255,255,255,0.05)';ctx.lineWidth=1;
+    for(let i=1;i<4;i++){const y=H-(i/4)*H;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+    ctx.beginPath();
+    curve.forEach((v,i)=>{const x=(i/(curve.length-1))*W;const y=H-((v-min)/range)*(H-10)-5;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+    ctx.strokeStyle='rgba(168,85,247,1)';ctx.lineWidth=2;ctx.stroke();
+    ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.closePath();
+    const grad=ctx.createLinearGradient(0,0,0,H);
+    grad.addColorStop(0,'rgba(168,85,247,0.3)');grad.addColorStop(1,'rgba(168,85,247,0)');
+    ctx.fillStyle=grad;ctx.fill();
   }
-init();
+
+  init();
 </script>
 </body>
 </html>
